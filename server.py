@@ -20,13 +20,11 @@ def send_move():
     if game_id not in games:
         return jsonify({"status": "error", "message": "Game not found"}), 404
     games[game_id]["moves"].append(move)
-    print("Games dictionary:", games)  # Debug the state
     return jsonify({"status": "success"}), 200
 
 
 @app.route("/get_moves/<game_id>", methods=["GET"])
 def get_moves(game_id):
-    print("Games dictionary:", games)  # Debug the state
     if game_id not in games:
         return jsonify({"status": "error", "message": "Game not found"}), 404
     return jsonify({"moves": games[game_id]["moves"]}), 200

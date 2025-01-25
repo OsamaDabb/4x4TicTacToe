@@ -17,7 +17,6 @@ def get_moves(game_id):
     response = requests.get(f"{SERVER_URL}/get_moves/{game_id}")
     if response.status_code == 200:
         return response.json()["moves"]
-    print("game not found")
     return []
 
 

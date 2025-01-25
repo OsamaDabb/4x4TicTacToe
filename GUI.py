@@ -202,7 +202,6 @@ def poll_moves():
     while True:
         if not my_turn:
             moves = get_moves(GAME_ID)
-            print(moves)
             if len(moves) == 0:
                 time.sleep(0.5)
                 continue
@@ -250,7 +249,6 @@ def main():
 
                 if success:
                     result = send_move(GAME_ID, (x, y, my_symbol))
-                    print(result)
                     my_turn = False
 
                 if win:
