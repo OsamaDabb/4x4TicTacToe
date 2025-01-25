@@ -5,7 +5,7 @@ import time
 from request_get import create_game, send_move, get_moves, end_game
 import threading
 
-GAME_ID = 250
+GAME_ID = "250"
 running = True
 
 pygame.init()
@@ -197,7 +197,7 @@ def update_board(board, player, x, y):
 
 def poll_moves():
     """Poll the server for opponent moves."""
-    global my_turn
+    global my_turn, opp_symbol
 
     while True:
         if not my_turn:
@@ -210,15 +210,15 @@ def poll_moves():
             if move[2] != my_symbol:
                 x, y = map(int, move[:2])
 
-                success, win = update_board(game_board, opp_symbol, x, y)
+                success, win = update_board(game_board, move[2], x, y)
 
                 if success:
                     my_turn = True
 
                 if win:
                     pygame.display.update()
+                    end_game(GAME_ID)
                     global running
-                    running = False
                     while True:
                         for ev in pygame.event.get():
                             if ev.type == pygame.QUIT:
@@ -237,8 +237,6 @@ def main():
     global running, my_turn, my_symbol, opp_symbol
     threading.Thread(target=poll_moves, daemon=True).start()
 
-    print(my_turn, my_symbol)
-
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -248,9 +246,11 @@ def main():
 
                 x, y = pygame.mouse.get_pos()
                 success, win = update_board(game_board, my_symbol, x, y)
+                pygame.display.update()
 
                 if success:
-                    send_move(GAME_ID, (x, y, my_symbol))
+                    result = send_move(GAME_ID, (x, y, my_symbol))
+                    print(result)
                     my_turn = False
 
                 if win:
