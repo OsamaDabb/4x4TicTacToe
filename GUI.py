@@ -2,6 +2,10 @@ import sys
 import pygame
 import time
 
+import request_get
+from request_get import create_game, send_move, get_moves
+import threading
+
 pygame.init()
 WIDTH, HEIGHT = 600, 600
 SCREEN = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -23,6 +27,8 @@ GRAY = (100, 100, 100)
 # Fonts
 TITLE_FONT = pygame.font.Font(None, 100)  # Font for the title
 BUTTON_FONT = pygame.font.Font(None, 50)  # Font for the button text
+my_symbol = ""
+my_turn = False
 
 # Draw Text on Screen
 def draw_text(message, font, color, x, y):
@@ -103,6 +109,10 @@ def start_screen():
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if start_button.collidepoint(event.pos):  # Check if the button is clicked
+
+                    _, created_new = request_get.create_game(1)
+                    my_symbol = "X" if created_new == 201 else "O"
+                    if created_new == 201: my_turn = True
                     return  # Exit the start screen and proceed to the game
 
         pygame.display.update()
@@ -174,6 +184,18 @@ def update_board(board, player, x, y):
 
     return True, False
 
+
+def poll_moves():
+    """Poll the server for opponent moves."""
+    global my_turn
+    while True:
+        moves = get_moves()
+        for move in moves:
+            row, col = map(int, move.split(","))
+            if game_board[row][col] is None:
+                game_board[row][col] = "O" if player_symbol == "X" else "X"
+                my_turn = True
+        time.sleep(1)
 
 # Main Loop
 def main():

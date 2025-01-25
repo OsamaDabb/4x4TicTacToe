@@ -7,7 +7,7 @@ games = {}  # Dictionary to store game sessions
 def create_game():
     game_id = request.json.get("game_id")
     if game_id in games:
-        return jsonify({"status": "error", "message": "Game ID already exists"}), 400
+        return jsonify({"status": "success", "message": "Game ID already exists"}), 202
     games[game_id] = {"moves": []}
     return jsonify({"status": "success", "message": f"Game {game_id} created"}), 201
 
