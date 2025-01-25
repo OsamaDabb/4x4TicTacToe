@@ -27,5 +27,15 @@ def get_moves(game_id):
     return jsonify({"moves": games[game_id]["moves"]}), 200
 
 
+@app.route("/end_game", methods=["POST"])
+def end_game():
+    game_id = request.json.get("game_id")
+    if game_id in games:
+        del games[game_id]  # Remove the game from the dictionary
+        return jsonify({"status": "success", "message": f"Game {game_id} has been ended."}), 200
+    else:
+        return jsonify({"status": "error", "message": "Game not found."}), 404
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)

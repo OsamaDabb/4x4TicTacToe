@@ -2,9 +2,11 @@ import sys
 import pygame
 import time
 
-import request_get
-from request_get import create_game, send_move, get_moves
+from request_get import create_game, send_move, get_moves, end_game
 import threading
+
+GAME_ID = 250
+running = True
 
 pygame.init()
 WIDTH, HEIGHT = 600, 600
@@ -28,7 +30,9 @@ GRAY = (100, 100, 100)
 TITLE_FONT = pygame.font.Font(None, 100)  # Font for the title
 BUTTON_FONT = pygame.font.Font(None, 50)  # Font for the button text
 my_symbol = ""
+opp_symbol = ""
 my_turn = False
+
 
 # Draw Text on Screen
 def draw_text(message, font, color, x, y):
@@ -36,11 +40,13 @@ def draw_text(message, font, color, x, y):
     text_rect = text_surface.get_rect(center=(x, y))
     SCREEN.blit(text_surface, text_rect)
 
+
 # Draw Button
 def draw_button(text, x, y, width, height, bg_color, text_color):
     pygame.draw.rect(SCREEN, bg_color, (x, y, width, height), border_radius=10)
     draw_text(text, BUTTON_FONT, text_color, x + width // 2, y + height // 2)
     return pygame.Rect(x, y, width, height)
+
 
 LINE_WIDTH = 3
 PADDING = 20
@@ -88,6 +94,7 @@ def clear_column(board, col):
 
 # Start Screen Function
 def start_screen():
+    global opp_symbol, my_symbol, my_turn
     running = True
     while running:
         SCREEN.fill(BG_COLOR)  # Background color
@@ -110,9 +117,12 @@ def start_screen():
             if event.type == pygame.MOUSEBUTTONDOWN:
                 if start_button.collidepoint(event.pos):  # Check if the button is clicked
 
-                    _, created_new = request_get.create_game(1)
-                    my_symbol = "X" if created_new == 201 else "O"
-                    if created_new == 201: my_turn = True
+                    response = create_game(GAME_ID)
+                    print(response)
+                    my_symbol = "O" if response["message"] == "Game ID already exists" else "X"
+                    opp_symbol = "X" if my_symbol == "O" else "X"
+                    if my_symbol == "X":
+                        my_turn = True
                     return  # Exit the start screen and proceed to the game
 
         pygame.display.update()
@@ -188,14 +198,35 @@ def update_board(board, player, x, y):
 def poll_moves():
     """Poll the server for opponent moves."""
     global my_turn
+
     while True:
-        moves = get_moves()
-        for move in moves:
-            row, col = map(int, move.split(","))
-            if game_board[row][col] is None:
-                game_board[row][col] = "O" if player_symbol == "X" else "X"
-                my_turn = True
-        time.sleep(1)
+        if not my_turn:
+            moves = get_moves(GAME_ID)
+            print(moves)
+            if len(moves) == 0:
+                time.sleep(0.5)
+                continue
+            move = tuple(moves[-1])
+            if move[2] != my_symbol:
+                x, y = map(int, move[:2])
+
+                success, win = update_board(game_board, opp_symbol, x, y)
+
+                if success:
+                    my_turn = True
+
+                if win:
+                    pygame.display.update()
+                    global running
+                    running = False
+                    while True:
+                        for ev in pygame.event.get():
+                            if ev.type == pygame.QUIT:
+                                pygame.quit()
+                                sys.exit()
+
+        time.sleep(0.5)
+
 
 # Main Loop
 def main():
@@ -203,31 +234,37 @@ def main():
     start_screen()
 
     draw_grid()
-    running = True
-    player = "X"
+    global running, my_turn, my_symbol, opp_symbol
+    threading.Thread(target=poll_moves, daemon=True).start()
+
+    print(my_turn, my_symbol)
 
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.type == pygame.MOUSEBUTTONDOWN and my_turn:
 
                 x, y = pygame.mouse.get_pos()
-                success, win = update_board(game_board, player, x, y)
+                success, win = update_board(game_board, my_symbol, x, y)
 
                 if success:
-                    player = "O" if player == "X" else "X"
+                    send_move(GAME_ID, (x, y, my_symbol))
+                    my_turn = False
+
                 if win:
                     pygame.display.update()
                     while True:
                         for ev in pygame.event.get():
                             if ev.type == pygame.QUIT:
+                                end_game(GAME_ID)
                                 pygame.quit()
                                 sys.exit()
 
         pygame.display.update()
 
+    end_game(GAME_ID)
     pygame.quit()
     sys.exit()
 

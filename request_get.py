@@ -15,3 +15,8 @@ def get_moves(game_id):
     if response.status_code == 200:
         return response.json()["moves"]
     return []
+
+def end_game(game_id):
+    response = requests.post(f"{SERVER_URL}/end_game", json={"game_id": game_id})
+    return response.json()
+
